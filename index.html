@@ -1,0 +1,3318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Budget Manager - Enhanced</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --warning-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            --info-gradient: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-gradient: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.3);
+            --radius-xl: 1.5rem;
+            --radius-2xl: 2rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%);
+            z-index: -1;
+            animation: backgroundShift 20s ease-in-out infinite;
+        }
+
+        @keyframes backgroundShift {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .app-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-xl);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 3rem;
+            height: 3rem;
+            background: var(--primary-gradient);
+            border-radius: var(--radius-xl);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: var(--shadow-glow);
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .logo-text h1 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-text p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .month-navigation {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-xl);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .month-nav-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.75rem;
+            border-radius: 1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .month-nav-btn:hover {
+            background: var(--primary-gradient);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .current-month {
+            font-weight: 700;
+            color: var(--text-primary);
+            min-width: 10rem;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .app-navigation {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 99;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 0;
+            overflow-x: auto;
+        }
+
+        .nav-tab {
+            background: none;
+            border: none;
+            padding: 1.25rem 2rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-tab::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .nav-tab:hover::before {
+            left: 100%;
+        }
+
+        .nav-tab:hover {
+            color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .nav-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            width: 100%;
+        }
+
+        .section {
+            display: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .section-header h2 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-header h2 i {
+            color: var(--primary-color);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card, .overview-card, .budget-card {
+            background: var(--card-gradient);
+            border-radius: var(--radius-2xl);
+            padding: 2rem;
+            box-shadow: var(--shadow-xl);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before, .overview-card::before, .budget-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-gradient);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover, .overview-card:hover, .budget-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: var(--shadow-xl), var(--shadow-glow);
+        }
+
+        .stat-card:hover::before, .overview-card:hover::before, .budget-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .stat-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-icon, .overview-card-icon {
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: var(--radius-xl);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 1rem 0;
+        }
+
+        .stat-change {
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .stat-change.positive {
+            color: #059669;
+        }
+
+        .stat-change.negative {
+            color: #dc2626;
+        }
+
+        .overview-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .overview-card {
+            cursor: pointer;
+        }
+
+        .overview-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .overview-card-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .overview-card-count {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            background: #f8fafc;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.75rem;
+        }
+
+        .overview-card-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+        }
+
+        .overview-card-item:last-child {
+            border-bottom: none;
+        }
+
+        .overview-card-item-name {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            flex: 1;
+            margin-right: 1rem;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .overview-card-item-amount {
+            font-weight: 600;
+            font-size: 0.875rem;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .overview-card-item-amount.positive {
+            color: #059669;
+        }
+
+        .overview-card-item-amount.negative {
+            color: #dc2626;
+        }
+
+        .overview-card-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 0.75rem;
+            border-top: 2px solid rgba(99, 102, 241, 0.2);
+            margin-top: 0.75rem;
+        }
+
+        .overview-card-total-label {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .overview-card-total-amount {
+            font-size: 1rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .overview-card-total-amount.positive {
+            color: #059669;
+        }
+
+        .overview-card-total-amount.negative {
+            color: #dc2626;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: var(--radius-xl);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-size: 0.875rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.4s ease;
+        }
+
+        .btn:hover::before {
+            width: 300%;
+            height: 300%;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-xl), var(--shadow-glow);
+        }
+
+        .btn-outline {
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--text-secondary);
+            border: 2px solid rgba(99, 102, 241, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary-gradient);
+            color: white;
+            border-color: transparent;
+            transform: translateY(-2px);
+        }
+
+        .btn-small {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+        }
+
+        .budget-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .budget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .budget-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .budget-amount {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .budget-remaining {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 1rem;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: 1rem;
+            overflow: hidden;
+            margin: 1rem 0;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success-gradient);
+            border-radius: 1rem;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-text {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .budget-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .list-container {
+            background: var(--card-gradient);
+            border-radius: var(--radius-2xl);
+            box-shadow: var(--shadow-xl);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            overflow: hidden;
+        }
+
+        .list-item {
+            display: flex;
+            align-items: center;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .list-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--primary-gradient);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .list-item:hover {
+            background: rgba(99, 102, 241, 0.05);
+            transform: translateX(8px);
+        }
+
+        .list-item:hover::before {
+            transform: scaleY(1);
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .item-details {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .item-amount {
+            font-size: 1.125rem;
+            font-weight: 700;
+            margin-right: 1rem;
+        }
+
+        .item-amount.positive {
+            color: #059669;
+        }
+
+        .item-amount.negative {
+            color: #dc2626;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+
+        .modal-content {
+            background: var(--card-gradient);
+            border-radius: var(--radius-2xl);
+            box-shadow: var(--shadow-xl);
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 1.5rem 0;
+            margin-bottom: 1rem;
+        }
+
+        .modal-header h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 0.75rem;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: #f8fafc;
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 0 1.5rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            padding: 1.5rem;
+            border-top: 1px solid rgba(99, 102, 241, 0.1);
+            margin-top: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            border: 2px solid rgba(99, 102, 241, 0.1);
+            border-radius: var(--radius-xl);
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+            background: white;
+            transform: translateY(-2px);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            color: #94a3b8;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .message {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.5rem 2rem;
+            border-radius: var(--radius-xl);
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .message.success {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            color: #065f46;
+            border: 2px solid #a7f3d0;
+        }
+
+        .message.error {
+            background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%);
+            color: #991b1b;
+            border: 2px solid #fca5a5;
+        }
+
+        .expense-history {
+            margin-top: 1.5rem;
+            display: none;
+        }
+
+        .expense-history.show {
+            display: block;
+        }
+
+        .paid-expense {
+            opacity: 0.7;
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .unpaid-expense {
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .paid-expense .item-title {
+            text-decoration: line-through;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1.5rem;
+                text-align: center;
+                padding: 1rem;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .stat-card, .overview-card, .budget-card {
+                padding: 1.5rem;
+            }
+
+            .nav-tab {
+                padding: 1rem 1.5rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .overview-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .budget-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .modal-content {
+                margin: 1rem;
+                max-width: calc(100% - 2rem);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h1>Family Budget</h1>
+                        <p>Smart Money Management</p>
+                    </div>
+                </div>
+                <div class="month-navigation">
+                    <button class="month-nav-btn" id="prevMonth">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="current-month">
+                        <span id="currentMonth">December</span> <span id="currentYear">2024</span>
+                    </div>
+                    <button class="month-nav-btn" id="nextMonth">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="app-navigation">
+            <div class="nav-container">
+                <div class="nav-tabs">
+                    <button class="nav-tab active" data-section="overview">
+                        <i class="fas fa-chart-pie"></i>
+                        Overview
+                    </button>
+                    <button class="nav-tab" data-section="income">
+                        <i class="fas fa-money-check-alt"></i>
+                        Income
+                    </button>
+                    <button class="nav-tab" data-section="expenses">
+                        <i class="fas fa-credit-card"></i>
+                        Expenses
+                    </button>
+                    <button class="nav-tab" data-section="budgets">
+                        <i class="fas fa-gas-pump"></i>
+                        Gas & Groceries
+                    </button>
+                    <button class="nav-tab" data-section="bills">
+                        <i class="fas fa-calendar-alt"></i>
+                        Subscriptions
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Overview Section -->
+            <section id="overview" class="section active">
+                <div class="section-header">
+                    <h2><i class="fas fa-chart-pie"></i> Financial Overview</h2>
+                </div>
+
+                <!-- Summary Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-title">Total Income</div>
+                            <div class="stat-icon" style="background: var(--success-gradient);">
+                                <i class="fas fa-arrow-up"></i>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="totalIncome">$0.00</div>
+                        <div class="stat-change positive" id="incomeChange">+0.0%</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-title">Total Expenses</div>
+                            <div class="stat-icon" style="background: var(--danger-gradient);">
+                                <i class="fas fa-arrow-down"></i>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="totalExpenses">$0.00</div>
+                        <div class="stat-change negative" id="expenseChange">+0.0%</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-title">Net Balance</div>
+                            <div class="stat-icon" style="background: var(--info-gradient);">
+                                <i class="fas fa-balance-scale"></i>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="netBalance">$0.00</div>
+                        <div class="stat-change positive" id="balanceChange">+0.0%</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-title">Monthly Result</div>
+                            <div class="stat-icon" style="background: var(--primary-gradient);">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="monthlySurplus">$0.00</div>
+                        <div class="stat-change positive" id="surplusChange">Surplus</div>
+                    </div>
+                </div>
+
+                <!-- Interactive Overview Cards -->
+                <div class="overview-cards" id="overviewCards">
+                    <div class="empty-state">
+                        <i class="fas fa-th-large"></i>
+                        <h3>No data to display</h3>
+                        <p>Add some income, expenses, or bills to see your overview</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Income Section -->
+            <section id="income" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-money-check-alt"></i> Income Sources</h2>
+                    <button class="btn btn-primary" id="addIncomeBtn">
+                        <i class="fas fa-plus"></i>
+                        Add Income
+                    </button>
+                </div>
+
+                <div class="list-container" id="incomeList">
+                    <div class="empty-state">
+                        <i class="fas fa-money-check-alt"></i>
+                        <h3>No income recorded</h3>
+                        <p>Add your first income source to get started</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Expenses Section -->
+            <section id="expenses" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-credit-card"></i> Monthly Expenses</h2>
+                    <button class="btn btn-primary" id="addExpenseBtn">
+                        <i class="fas fa-plus"></i>
+                        Add Expense
+                    </button>
+                </div>
+
+                <div class="list-container" id="expenseList">
+                    <div class="empty-state">
+                        <i class="fas fa-credit-card"></i>
+                        <h3>No expenses recorded</h3>
+                        <p>Add your first expense to start tracking</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Gas & Groceries Section -->
+            <section id="budgets" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-gas-pump"></i> Gas & Groceries</h2>
+                    <button class="btn btn-primary" id="editBudgetsBtn">
+                        <i class="fas fa-edit"></i> Edit Budgets
+                    </button>
+                </div>
+
+                <!-- Budget Cards -->
+                <div class="budget-cards">
+                    <div class="budget-card">
+                        <div class="budget-header">
+                            <div class="budget-title">
+                                <i class="fas fa-gas-pump"></i>
+                                Gas Budget
+                            </div>
+                            <button class="btn btn-small btn-primary" id="addGasExpense">
+                                <i class="fas fa-plus"></i>
+                                Add Expense
+                            </button>
+                        </div>
+                        <div class="budget-amount" id="gasBudget">$0.00</div>
+                        <div class="budget-remaining" id="gasRemaining">$0.00 remaining</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="gasProgress" style="width: 0%;"></div>
+                        </div>
+                        <div class="progress-text" id="gasPercent">0%</div>
+                        <div class="budget-actions">
+                            <button class="btn btn-small btn-outline" id="viewGasHistory">
+                                <i class="fas fa-history"></i>
+                                View History
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="budget-card">
+                        <div class="budget-header">
+                            <div class="budget-title">
+                                <i class="fas fa-shopping-cart"></i>
+                                Grocery Budget
+                            </div>
+                            <button class="btn btn-small btn-primary" id="addGroceryExpense">
+                                <i class="fas fa-plus"></i>
+                                Add Expense
+                            </button>
+                        </div>
+                        <div class="budget-amount" id="groceryBudget">$0.00</div>
+                        <div class="budget-remaining" id="groceryRemaining">$0.00 remaining</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="groceryProgress" style="width: 0%;"></div>
+                        </div>
+                        <div class="progress-text" id="groceryPercent">0%</div>
+                        <div class="budget-actions">
+                            <button class="btn btn-small btn-outline" id="viewGroceryHistory">
+                                <i class="fas fa-history"></i>
+                                View History
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expense Histories -->
+                <div class="expense-history" id="gasExpenseHistory">
+                    <div class="list-container">
+                        <div class="empty-state">
+                            <i class="fas fa-gas-pump"></i>
+                            <h3>No gas expenses yet</h3>
+                            <p>Add your first gas expense</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="expense-history" id="groceryExpenseHistory">
+                    <div class="list-container">
+                        <div class="empty-state">
+                            <i class="fas fa-shopping-cart"></i>
+                            <h3>No grocery expenses yet</h3>
+                            <p>Add your first grocery expense</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bills Section -->
+            <section id="bills" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-calendar-alt"></i> Recurring Subscriptions</h2>
+                    <button class="btn btn-primary" id="addBillBtn">
+                        <i class="fas fa-plus"></i>
+                        Add Subscription
+                    </button>
+                </div>
+
+                <div class="stat-card" style="margin-bottom: 2rem;">
+                    <div class="stat-header">
+                        <div class="stat-title">Monthly Total</div>
+                        <div class="stat-icon" style="background: var(--info-gradient);">
+                            <i class="fas fa-calculator"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="monthlyBillsTotal">$0.00</div>
+                </div>
+
+                <div class="list-container" id="billsList">
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-check"></i>
+                        <h3>No recurring bills</h3>
+                        <p>Add your first recurring bill to get started</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Modals -->
+        <!-- Income Modal -->
+        <div class="modal-overlay" id="incomeModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="incomeModalTitle">Add Income</h3>
+                    <button class="modal-close" id="closeIncomeModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="incomeAmount">Amount</label>
+                        <input type="number" id="incomeAmount" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="incomeDate">Date</label>
+                        <input type="date" id="incomeDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="incomeCategory">Source</label>
+                        <select id="incomeCategory">
+                            <option value="salary">Salary</option>
+                            <option value="freelance">Freelance</option>
+                            <option value="business">Business</option>
+                            <option value="investment">Investment</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-outline" id="cancelIncome">Cancel</button>
+                    <button class="btn btn-primary" id="saveIncome">Save Income</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expense Modal -->
+        <div class="modal-overlay" id="expenseModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="expenseModalTitle">Add Monthly Expense</h3>
+                    <button class="modal-close" id="closeExpenseModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="expenseName">Expense Name</label>
+                        <input type="text" id="expenseName" placeholder="e.g., Rent, Insurance">
+                    </div>
+                    <div class="form-group">
+                        <label for="expenseAmount">Monthly Amount</label>
+                        <input type="number" id="expenseAmount" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="expenseCategory">Category</label>
+                        <select id="expenseCategory">
+                            <option value="housing">Housing</option>
+                            <option value="utilities">Utilities</option>
+                            <option value="transportation">Transportation</option>
+                            <option value="food">Food</option>
+                            <option value="healthcare">Healthcare</option>
+                            <option value="entertainment">Entertainment</option>
+                            <option value="shopping">Shopping</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="expenseDate">Date Added</label>
+                        <input type="date" id="expenseDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="expenseDueDate">Monthly Due Date</label>
+                        <input type="number" id="expenseDueDate" min="1" max="31" placeholder="Day of month (1-31)">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-outline" id="cancelExpense">Cancel</button>
+                    <button class="btn btn-primary" id="saveExpense">Save Expense</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Edit Modal -->
+        <div class="modal-overlay" id="budgetModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Edit Budget Amounts</h3>
+                    <button class="modal-close" id="closeBudgetModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="modalGasBudget">Gas Monthly Budget</label>
+                        <input type="number" id="modalGasBudget" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="modalGroceryBudget">Grocery Monthly Budget</label>
+                        <input type="number" id="modalGroceryBudget" step="0.01" placeholder="0.00">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-outline" id="cancelBudgetEdit">Cancel</button>
+                    <button class="btn btn-primary" id="saveBudgetEdit">Save Changes</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gas Expense Modal -->
+        <div class="modal-overlay" id="gasExpenseModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Add Gas Expense</h3>
+                    <button class="modal-close" id="closeGasExpenseModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="modalGasAmount">Amount</label>
+                        <input type="number" id="modalGasAmount" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="modalGasDate">Date</label>
+                        <input type="date" id="modalGasDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="modalGasNote">Note (optional)</label>
+                        <input type="text" id="modalGasNote" placeholder="e.g., Shell Station">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-outline" id="cancelGasExpense">Cancel</button>
+                    <button class="btn btn-primary" id="saveQuickGasExpense">Add Expense</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grocery Expense Modal -->
+        <div class="modal-overlay" id="groceryExpenseModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Add Grocery Expense</h3>
+                    <button class="modal-close" id="closeGroceryExpenseModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="quickGroceryAmount">Amount</label>
+                        <input type="number" id="quickGroceryAmount" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="quickGroceryDate">Date</label>
+                        <input type="date" id="quickGroceryDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="quickGroceryNote">Note (optional)</label>
+                        <input type="text" id="quickGroceryNote" placeholder="e.g., Walmart">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-outline" id="cancelGroceryExpense">Cancel</button>
+                    <button class="btn btn-primary" id="saveQuickGroceryExpense">Add Expense</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bill Modal -->
+        <div class="modal-overlay" id="billModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="billModalTitle">Add Recurring Subscription</h3>
+                    <button class="modal-close" id="closeBillModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="billName">Subscription Name</label>
+                        <input type="text" id="billName" placeholder="e.g., Netflix, Spotify">
+                    </div>
+                    <div class="form-group">
+                        <label for="billAmount">Amount</label>
+                        <input type="number" id="billAmount" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="billFrequency">Frequency</label>
+                        <select id="billFrequency">
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly" selected>Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                            <option value="yearly">Yearly</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="billDueDate">Next Due Date</label>
+                        <input type="date" id="billDueDate">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-outline" id="cancelBill">Cancel</button>
+                    <button class="btn btn-primary" id="saveBill">Save Subscription</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Manager with Supabase Integration
+        class DataManager {
+            constructor() {
+                this.currentMonth = new Date().getMonth();
+                this.currentYear = new Date().getFullYear();
+                this.supabase = null;
+                this.userId = null;
+                this.data = {
+                    income: [],
+                    expenses: [],
+                    recurringBills: [],
+                    gasBudget: { total: 0, expenses: [] },
+                    groceryBudget: { total: 0, expenses: [] }
+                };
+                this.initSupabase();
+            }
+
+            async initSupabase() {
+                try {
+                    // Initialize Supabase client
+                    this.supabase = window.supabase.createClient(
+                        'https://ebqrguvyzikopawxodcs.supabase.co', // Replace with your Supabase URL
+                        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVicXJndXZ5emlrb3Bhd3hvZGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MDM1NDIsImV4cCI6MjA4MTM3OTU0Mn0.3i6Dx8D30OYcns6r5bKyKt14WTisWOxrcViHVrJ9UGU' // Replace with your Supabase anon key
+                    );
+                    
+                    // Generate or retrieve user ID (for demo purposes, using a simple approach)
+                    this.userId = this.getOrCreateUserId();
+                    
+                    // Load data from Supabase
+                    await this.loadData();
+                    
+                    // Set up real-time subscriptions
+                    this.setupRealtimeSubscriptions();
+                    
+                    console.log('Supabase initialized successfully');
+                } catch (error) {
+                    console.error('Supabase initialization failed, falling back to localStorage:', error);
+                    this.loadDataFromLocalStorage();
+                }
+            }
+
+            getOrCreateUserId() {
+                let userId = localStorage.getItem('familyBudgetUserId');
+                if (!userId) {
+                    userId = 'user_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
+                    localStorage.setItem('familyBudgetUserId', userId);
+                }
+                return userId;
+            }
+
+            async loadData() {
+                if (!this.supabase) {
+                    return this.loadDataFromLocalStorage();
+                }
+
+                try {
+                    // Load all data from Supabase tables
+                    const [incomeResult, expensesResult, billsResult, budgetsResult] = await Promise.all([
+                        this.supabase.from('income').select('*').eq('user_id', this.userId),
+                        this.supabase.from('expenses').select('*').eq('user_id', this.userId),
+                        this.supabase.from('recurring_bills').select('*').eq('user_id', this.userId),
+                        this.supabase.from('budgets').select('*').eq('user_id', this.userId)
+                    ]);
+
+                    // Process income data
+                    if (incomeResult.data) {
+                        this.data.income = incomeResult.data.map(item => ({
+                            id: item.id,
+                            source: item.source,
+                            amount: item.amount,
+                            date: item.date,
+                            category: item.category,
+                            period: item.period
+                        }));
+                    }
+
+                    // Process expenses data
+                    if (expensesResult.data) {
+                        this.data.expenses = expensesResult.data.map(item => ({
+                            id: item.id,
+                            name: item.name,
+                            amount: item.amount,
+                            category: item.category,
+                            date: item.date,
+                            dueDate: item.due_date,
+                            period: item.period,
+                            isTemplate: item.is_template,
+                            isPaid: item.is_paid,
+                            templateId: item.template_id
+                        }));
+                    }
+
+                    // Process recurring bills data
+                    if (billsResult.data) {
+                        this.data.recurringBills = billsResult.data.map(item => ({
+                            id: item.id,
+                            name: item.name,
+                            amount: item.amount,
+                            frequency: item.frequency,
+                            dueDate: item.due_date,
+                            isPaid: item.is_paid,
+                            paymentHistory: item.payment_history || []
+                        }));
+                    }
+
+                    // Process budgets data
+                    if (budgetsResult.data) {
+                        const gasBudget = budgetsResult.data.find(b => b.type === 'gas');
+                        const groceryBudget = budgetsResult.data.find(b => b.type === 'grocery');
+                        
+                        this.data.gasBudget = {
+                            total: gasBudget ? gasBudget.total : 0,
+                            expenses: gasBudget ? gasBudget.expenses || [] : []
+                        };
+                        
+                        this.data.groceryBudget = {
+                            total: groceryBudget ? groceryBudget.total : 0,
+                            expenses: groceryBudget ? groceryBudget.expenses || [] : []
+                        };
+                    }
+
+                    console.log('Data loaded from Supabase successfully');
+                } catch (error) {
+                    console.error('Failed to load data from Supabase, falling back to localStorage:', error);
+                    this.loadDataFromLocalStorage();
+                }
+            }
+
+            loadDataFromLocalStorage() {
+                const saved = localStorage.getItem('familyBudgetData');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    
+                    // Migrate existing expenses to new template structure
+                    if (data.expenses) {
+                        data.expenses.forEach(expense => {
+                            if (expense.isTemplate === undefined) {
+                                expense.isTemplate = true;
+                                expense.templateId = expense.templateId || this.generateId();
+                            }
+                            if (expense.isPaid === undefined) {
+                                expense.isPaid = false;
+                            }
+                        });
+                    }
+                    
+                    // Migrate existing recurring bills to new payment structure
+                    if (data.recurringBills) {
+                        data.recurringBills.forEach(bill => {
+                            if (bill.isPaid === undefined) {
+                                bill.isPaid = false;
+                            }
+                            if (bill.paymentHistory === undefined) {
+                                bill.paymentHistory = [];
+                            }
+                        });
+                    }
+                    
+                    this.data = data;
+                } else {
+                    this.data = {
+                        income: [],
+                        expenses: [],
+                        recurringBills: [],
+                        gasBudget: { total: 0, expenses: [] },
+                        groceryBudget: { total: 0, expenses: [] }
+                    };
+                }
+            }
+
+            async saveData() {
+                // Always save to localStorage as backup
+                localStorage.setItem('familyBudgetData', JSON.stringify(this.data));
+                
+                if (!this.supabase) {
+                    return;
+                }
+
+                try {
+                    // Save to Supabase (this will be implemented with individual save methods)
+                    console.log('Data saved to localStorage and Supabase sync queued');
+                } catch (error) {
+                    console.error('Failed to save to Supabase:', error);
+                }
+            }
+
+            // Individual Supabase save methods for real-time syncing
+            async saveIncomeToSupabase(income) {
+                if (!this.supabase) return;
+
+                try {
+                    const { data, error } = await this.supabase
+                        .from('income')
+                        .upsert({
+                            id: income.id,
+                            user_id: this.userId,
+                            source: income.source,
+                            amount: income.amount,
+                            date: income.date,
+                            category: income.category,
+                            period: income.period,
+                            updated_at: new Date().toISOString()
+                        });
+
+                    if (error) throw error;
+                    console.log('Income saved to Supabase:', data);
+                } catch (error) {
+                    console.error('Failed to save income to Supabase:', error);
+                }
+            }
+
+            async saveExpenseToSupabase(expense) {
+                if (!this.supabase) return;
+
+                try {
+                    const { data, error } = await this.supabase
+                        .from('expenses')
+                        .upsert({
+                            id: expense.id,
+                            user_id: this.userId,
+                            name: expense.name,
+                            amount: expense.amount,
+                            category: expense.category,
+                            date: expense.date,
+                            due_date: expense.dueDate,
+                            period: expense.period,
+                            is_template: expense.isTemplate,
+                            is_paid: expense.isPaid,
+                            template_id: expense.templateId,
+                            updated_at: new Date().toISOString()
+                        });
+
+                    if (error) throw error;
+                    console.log('Expense saved to Supabase:', data);
+                } catch (error) {
+                    console.error('Failed to save expense to Supabase:', error);
+                }
+            }
+
+            async saveBillToSupabase(bill) {
+                if (!this.supabase) return;
+
+                try {
+                    const { data, error } = await this.supabase
+                        .from('recurring_bills')
+                        .upsert({
+                            id: bill.id,
+                            user_id: this.userId,
+                            name: bill.name,
+                            amount: bill.amount,
+                            frequency: bill.frequency,
+                            due_date: bill.dueDate,
+                            is_paid: bill.isPaid,
+                            payment_history: bill.paymentHistory,
+                            updated_at: new Date().toISOString()
+                        });
+
+                    if (error) throw error;
+                    console.log('Bill saved to Supabase:', data);
+                } catch (error) {
+                    console.error('Failed to save bill to Supabase:', error);
+                }
+            }
+
+            async saveBudgetToSupabase(type, budget) {
+                if (!this.supabase) return;
+
+                try {
+                    const { data, error } = await this.supabase
+                        .from('budgets')
+                        .upsert({
+                            user_id: this.userId,
+                            type: type,
+                            total: budget.total,
+                            expenses: budget.expenses,
+                            updated_at: new Date().toISOString()
+                        });
+
+                    if (error) throw error;
+                    console.log(`${type} budget saved to Supabase:`, data);
+                } catch (error) {
+                    console.error(`Failed to save ${type} budget to Supabase:`, error);
+                }
+            }
+
+            async deleteFromSupabase(table, id) {
+                if (!this.supabase) return;
+
+                try {
+                    const { error } = await this.supabase
+                        .from(table)
+                        .delete()
+                        .eq('id', id)
+                        .eq('user_id', this.userId);
+
+                    if (error) throw error;
+                    console.log(`Item deleted from ${table}:`, id);
+                } catch (error) {
+                    console.error(`Failed to delete from ${table}:`, error);
+                }
+            }
+
+            setupRealtimeSubscriptions() {
+                if (!this.supabase) return;
+
+                try {
+                    // Subscribe to changes in income table
+                    this.supabase
+                        .channel('income_changes')
+                        .on('postgres_changes', 
+                            { event: '*', schema: 'public', table: 'income', filter: `user_id=eq.${this.userId}` },
+                            (payload) => this.handleRealtimeUpdate('income', payload)
+                        )
+                        .subscribe();
+
+                    // Subscribe to changes in expenses table
+                    this.supabase
+                        .channel('expenses_changes')
+                        .on('postgres_changes', 
+                            { event: '*', schema: 'public', table: 'expenses', filter: `user_id=eq.${this.userId}` },
+                            (payload) => this.handleRealtimeUpdate('expenses', payload)
+                        )
+                        .subscribe();
+
+                    // Subscribe to changes in recurring_bills table
+                    this.supabase
+                        .channel('bills_changes')
+                        .on('postgres_changes', 
+                            { event: '*', schema: 'public', table: 'recurring_bills', filter: `user_id=eq.${this.userId}` },
+                            (payload) => this.handleRealtimeUpdate('recurringBills', payload)
+                        )
+                        .subscribe();
+
+                    // Subscribe to changes in budgets table
+                    this.supabase
+                        .channel('budgets_changes')
+                        .on('postgres_changes', 
+                            { event: '*', schema: 'public', table: 'budgets', filter: `user_id=eq.${this.userId}` },
+                            (payload) => this.handleRealtimeUpdate('budgets', payload)
+                        )
+                        .subscribe();
+
+                    console.log('Real-time subscriptions set up successfully');
+                } catch (error) {
+                    console.error('Failed to set up real-time subscriptions:', error);
+                }
+            }
+
+            handleRealtimeUpdate(table, payload) {
+                console.log(`Real-time update received for ${table}:`, payload);
+                
+                // Refresh the UI when data changes from other devices
+                if (window.app) {
+                    window.app.showMessage('Data updated from another device!', 'info');
+                    // Reload current section to show updated data
+                    window.app.showSection(window.app.currentSection);
+                }
+            }
+
+            generateId() {
+                return Date.now().toString(36) + Math.random().toString(36).substr(2);
+            }
+
+            getCurrentPeriod() {
+                return `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}`;
+            }
+
+            navigateMonth(direction) {
+                this.currentMonth += direction;
+                if (this.currentMonth > 11) {
+                    this.currentMonth = 0;
+                    this.currentYear++;
+                } else if (this.currentMonth < 0) {
+                    this.currentMonth = 11;
+                    this.currentYear--;
+                }
+                return this.getCurrentPeriod();
+            }
+
+            getMonthName(monthIndex) {
+                const months = [
+                    'January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'
+                ];
+                return months[monthIndex];
+            }
+
+            // Income methods
+            addIncome(incomeData) {
+                const income = {
+                    id: this.generateId(),
+                    ...incomeData,
+                    period: this.getCurrentPeriod()
+                };
+                this.data.income.push(income);
+                this.saveData();
+                // Real-time sync to Supabase
+                this.saveIncomeToSupabase(income);
+                return income;
+            }
+
+            getIncome() {
+                const currentPeriod = this.getCurrentPeriod();
+                return this.data.income.filter(item => item.period === currentPeriod);
+            }
+
+            updateIncome(id, updates) {
+                const index = this.data.income.findIndex(item => item.id === id);
+                if (index !== -1) {
+                    this.data.income[index] = { ...this.data.income[index], ...updates };
+                    this.saveData();
+                    // Real-time sync to Supabase
+                    this.saveIncomeToSupabase(this.data.income[index]);
+                }
+            }
+
+            deleteIncome(id) {
+                this.data.income = this.data.income.filter(item => item.id !== id);
+                this.saveData();
+                // Real-time sync to Supabase
+                this.deleteFromSupabase('income', id);
+            }
+
+            // Expense methods
+            addExpense(expenseData) {
+                const expense = {
+                    id: this.generateId(),
+                    ...expenseData,
+                    period: this.getCurrentPeriod(),
+                    isTemplate: true, // Mark as template for auto-population
+                    isPaid: false, // NEW: Default to unpaid
+                    templateId: this.generateId() // Unique template identifier
+                };
+                this.data.expenses.push(expense);
+                this.saveData();
+                // Real-time sync to Supabase
+                this.saveExpenseToSupabase(expense);
+                
+                // Auto-populate to future months if this is a new template
+                this.autoPopulateExpense(expense);
+                return expense;
+            }
+
+            getExpenses() {
+                const currentPeriod = this.getCurrentPeriod();
+                let currentExpenses = this.data.expenses.filter(item => item.period === currentPeriod);
+                
+                // If no expenses for current month, auto-populate from previous month templates
+                if (currentExpenses.length === 0) {
+                    this.autoPopulateFromPreviousMonth();
+                    currentExpenses = this.data.expenses.filter(item => item.period === currentPeriod);
+                }
+                
+                return currentExpenses;
+            }
+
+            // NEW: Auto-populate expense to future months
+            autoPopulateExpense(templateExpense) {
+                const currentYear = this.currentYear;
+                const currentMonth = this.currentMonth;
+                
+                // Create instances for next 12 months
+                for (let i = 1; i <= 12; i++) {
+                    let targetMonth = currentMonth + i;
+                    let targetYear = currentYear;
+                    
+                    if (targetMonth > 11) {
+                        targetYear += Math.floor(targetMonth / 12);
+                        targetMonth = targetMonth % 12;
+                    }
+                    
+                    const targetPeriod = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`;
+                    
+                    // Check if this expense already exists for this period
+                    const existingExpense = this.data.expenses.find(exp => 
+                        exp.templateId === templateExpense.templateId && exp.period === targetPeriod
+                    );
+                    
+                    if (!existingExpense) {
+                        const futureExpense = {
+                            id: this.generateId(),
+                            ...templateExpense,
+                            period: targetPeriod,
+                            isTemplate: false,
+                            isPaid: false, // NEW: Default to unpaid
+                            templateId: templateExpense.templateId,
+                            date: `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-01`
+                        };
+                        this.data.expenses.push(futureExpense);
+                    }
+                }
+                this.saveData();
+            }
+
+            // NEW: Auto-populate from previous month templates
+            autoPopulateFromPreviousMonth() {
+                const currentPeriod = this.getCurrentPeriod();
+                let prevMonth = this.currentMonth - 1;
+                let prevYear = this.currentYear;
+                
+                if (prevMonth < 0) {
+                    prevMonth = 11;
+                    prevYear--;
+                }
+                
+                const prevPeriod = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}`;
+                const prevExpenses = this.data.expenses.filter(item => 
+                    item.period === prevPeriod && item.isTemplate
+                );
+                
+                prevExpenses.forEach(templateExpense => {
+                    // Check if this expense already exists for current period
+                    const existingExpense = this.data.expenses.find(exp => 
+                        exp.templateId === templateExpense.templateId && exp.period === currentPeriod
+                    );
+                    
+                    if (!existingExpense) {
+                        const newExpense = {
+                            id: this.generateId(),
+                            ...templateExpense,
+                            period: currentPeriod,
+                            isTemplate: false,
+                            isPaid: false, // NEW: Default to unpaid
+                            date: `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-01`
+                        };
+                        this.data.expenses.push(newExpense);
+                    }
+                });
+                
+                this.saveData();
+            }
+
+            // NEW: Mark expense as paid/unpaid
+            markExpensePaid(id, isPaid) {
+                const index = this.data.expenses.findIndex(item => item.id === id);
+                if (index !== -1) {
+                    this.data.expenses[index].isPaid = isPaid;
+                    this.saveData();
+                }
+            }
+
+            // NEW: Get paid and unpaid expenses separately
+            getExpensesByPaidStatus() {
+                const expenses = this.getExpenses();
+                return {
+                    paid: expenses.filter(exp => exp.isPaid),
+                    unpaid: expenses.filter(exp => !exp.isPaid),
+                    total: expenses
+                };
+            }
+
+            updateExpense(id, updates) {
+                const index = this.data.expenses.findIndex(item => item.id === id);
+                if (index !== -1) {
+                    const expense = this.data.expenses[index];
+                    this.data.expenses[index] = { ...expense, ...updates };
+                    
+                    // If updating a template, update future instances too
+                    if (expense.isTemplate && updates.name || updates.amount || updates.category || updates.dueDate) {
+                        this.updateFutureInstances(expense.templateId, updates);
+                    }
+                    
+                    this.saveData();
+                    // Real-time sync to Supabase
+                    this.saveExpenseToSupabase(this.data.expenses[index]);
+                }
+            }
+
+            deleteExpense(id) {
+                const expense = this.data.expenses.find(item => item.id === id);
+                if (expense) {
+                    if (expense.isTemplate) {
+                        // If deleting a template, ask user what to do with future instances
+                        return 'template'; // Signal to UI to ask user
+                    } else {
+                        // Just delete this month's instance
+                        this.data.expenses = this.data.expenses.filter(item => item.id !== id);
+                        this.saveData();
+                        return 'instance';
+                    }
+                }
+            }
+
+            // NEW: Delete template and all future instances
+            deleteExpenseTemplate(templateId) {
+                const currentPeriod = this.getCurrentPeriod();
+                this.data.expenses = this.data.expenses.filter(item => {
+                    if (item.templateId === templateId) {
+                        // Keep past instances, delete current and future
+                        const itemYear = parseInt(item.period.split('-')[0]);
+                        const itemMonth = parseInt(item.period.split('-')[1]) - 1;
+                        const currentYear = parseInt(currentPeriod.split('-')[0]);
+                        const currentMonth = parseInt(currentPeriod.split('-')[1]) - 1;
+                        
+                        if (itemYear > currentYear || (itemYear === currentYear && itemMonth >= currentMonth)) {
+                            return false; // Delete current and future
+                        }
+                        return true; // Keep past
+                    }
+                    return true; // Keep non-related expenses
+                });
+                this.saveData();
+            }
+
+            // NEW: Delete only current month instance
+            deleteExpenseInstance(id) {
+                this.data.expenses = this.data.expenses.filter(item => item.id !== id);
+                this.saveData();
+            }
+
+            // NEW: Update future instances of a template
+            updateFutureInstances(templateId, updates) {
+                const currentPeriod = this.getCurrentPeriod();
+                this.data.expenses.forEach((expense, index) => {
+                    if (expense.templateId === templateId && !expense.isTemplate) {
+                        const expenseYear = parseInt(expense.period.split('-')[0]);
+                        const expenseMonth = parseInt(expense.period.split('-')[1]) - 1;
+                        const currentYear = parseInt(currentPeriod.split('-')[0]);
+                        const currentMonth = parseInt(currentPeriod.split('-')[1]) - 1;
+                        
+                        // Update future instances only
+                        if (expenseYear > currentYear || (expenseYear === currentYear && expenseMonth > currentMonth)) {
+                            this.data.expenses[index] = { ...expense, ...updates };
+                        }
+                    }
+                });
+            }
+
+            // Recurring bills methods
+            addRecurringBill(billData) {
+                const bill = {
+                    id: this.generateId(),
+                    ...billData,
+                    isPaid: false, // NEW: Default to unpaid
+                    paymentHistory: [] // NEW: Track payment dates
+                };
+                this.data.recurringBills.push(bill);
+                this.saveData();
+                // Real-time sync to Supabase
+                this.saveBillToSupabase(bill);
+                return bill;
+            }
+
+            getRecurringBills() {
+                return this.data.recurringBills;
+            }
+
+            updateRecurringBill(id, updates) {
+                const index = this.data.recurringBills.findIndex(item => item.id === id);
+                if (index !== -1) {
+                    this.data.recurringBills[index] = { ...this.data.recurringBills[index], ...updates };
+                    this.saveData();
+                    // Real-time sync to Supabase
+                    this.saveBillToSupabase(this.data.recurringBills[index]);
+                }
+            }
+
+            deleteRecurringBill(id) {
+                this.data.recurringBills = this.data.recurringBills.filter(item => item.id !== id);
+                this.saveData();
+                // Real-time sync to Supabase
+                this.deleteFromSupabase('recurring_bills', id);
+            }
+
+            // NEW: Mark subscription as paid and calculate next due date
+            markSubscriptionPaid(id) {
+                const billIndex = this.data.recurringBills.findIndex(item => item.id === id);
+                if (billIndex !== -1) {
+                    const bill = this.data.recurringBills[billIndex];
+                    const today = new Date();
+                    
+                    // Log payment date
+                    if (!bill.paymentHistory) {
+                        bill.paymentHistory = [];
+                    }
+                    bill.paymentHistory.push({
+                        date: today.toISOString().split('T')[0],
+                        amount: bill.amount
+                    });
+                    
+                    // Calculate next due date based on frequency
+                    const currentDueDate = new Date(bill.dueDate);
+                    let nextDueDate = new Date(currentDueDate);
+                    
+                    switch (bill.frequency) {
+                        case 'weekly':
+                            nextDueDate.setDate(nextDueDate.getDate() + 7);
+                            break;
+                        case 'monthly':
+                            nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+                            break;
+                        case 'quarterly':
+                            nextDueDate.setMonth(nextDueDate.getMonth() + 3);
+                            break;
+                        case 'yearly':
+                            nextDueDate.setFullYear(nextDueDate.getFullYear() + 1);
+                            break;
+                    }
+                    
+                    // Update bill with new due date and reset paid status
+                    this.data.recurringBills[billIndex] = {
+                        ...bill,
+                        dueDate: nextDueDate.toISOString().split('T')[0],
+                        isPaid: false // Reset to unpaid for next cycle
+                    };
+                    
+                    this.saveData();
+                    return nextDueDate;
+                }
+                return null;
+            }
+
+            // NEW: Mark subscription as unpaid (undo payment)
+            markSubscriptionUnpaid(id) {
+                const billIndex = this.data.recurringBills.findIndex(item => item.id === id);
+                if (billIndex !== -1) {
+                    const bill = this.data.recurringBills[billIndex];
+                    
+                    // Remove last payment from history
+                    if (bill.paymentHistory && bill.paymentHistory.length > 0) {
+                        const lastPayment = bill.paymentHistory.pop();
+                        
+                        // Calculate previous due date based on frequency
+                        const currentDueDate = new Date(bill.dueDate);
+                        let previousDueDate = new Date(currentDueDate);
+                        
+                        switch (bill.frequency) {
+                            case 'weekly':
+                                previousDueDate.setDate(previousDueDate.getDate() - 7);
+                                break;
+                            case 'monthly':
+                                previousDueDate.setMonth(previousDueDate.getMonth() - 1);
+                                break;
+                            case 'quarterly':
+                                previousDueDate.setMonth(previousDueDate.getMonth() - 3);
+                                break;
+                            case 'yearly':
+                                previousDueDate.setFullYear(previousDueDate.getFullYear() - 1);
+                                break;
+                        }
+                        
+                        // Restore previous due date
+                        this.data.recurringBills[billIndex] = {
+                            ...bill,
+                            dueDate: previousDueDate.toISOString().split('T')[0],
+                            isPaid: false
+                        };
+                    }
+                    
+                    this.saveData();
+                }
+            }
+
+            calculateMonthlyEquivalent(amount, frequency) {
+                const multipliers = {
+                    weekly: 4.33,
+                    monthly: 1,
+                    quarterly: 1/3,
+                    yearly: 1/12
+                };
+                return amount * (multipliers[frequency] || 1);
+            }
+
+            // Budget methods
+            updateGasBudget(amount) {
+                this.data.gasBudget.total = amount;
+                this.saveData();
+                // Real-time sync to Supabase
+                this.saveBudgetToSupabase('gas', this.data.gasBudget);
+            }
+
+            updateGroceryBudget(amount) {
+                this.data.groceryBudget.total = amount;
+                this.saveData();
+                // Real-time sync to Supabase
+                this.saveBudgetToSupabase('grocery', this.data.groceryBudget);
+            }
+
+            getGasBudget() {
+                const currentPeriod = this.getCurrentPeriod();
+                return {
+                    total: this.data.gasBudget.total,
+                    expenses: this.data.gasBudget.expenses.filter(exp => exp.period === currentPeriod)
+                };
+            }
+
+            getGroceryBudget() {
+                const currentPeriod = this.getCurrentPeriod();
+                return {
+                    total: this.data.groceryBudget.total,
+                    expenses: this.data.groceryBudget.expenses.filter(exp => exp.period === currentPeriod)
+                };
+            }
+
+            addGasExpense(expenseData) {
+                const expense = {
+                    id: this.generateId(),
+                    ...expenseData,
+                    period: this.getCurrentPeriod()
+                };
+                this.data.gasBudget.expenses.push(expense);
+                this.saveData();
+                // Real-time sync to Supabase
+                this.saveBudgetToSupabase('gas', this.data.gasBudget);
+                return expense;
+            }
+
+            addGroceryExpense(expenseData) {
+                const expense = {
+                    id: this.generateId(),
+                    ...expenseData,
+                    period: this.getCurrentPeriod()
+                };
+                this.data.groceryBudget.expenses.push(expense);
+                this.saveData();
+                // Real-time sync to Supabase
+                this.saveBudgetToSupabase('grocery', this.data.groceryBudget);
+                return expense;
+            }
+
+            deleteGasExpense(id) {
+                this.data.gasBudget.expenses = this.data.gasBudget.expenses.filter(exp => exp.id !== id);
+                this.saveData();
+                // Real-time sync to Supabase
+                this.saveBudgetToSupabase('gas', this.data.gasBudget);
+            }
+
+            deleteGroceryExpense(id) {
+                this.data.groceryBudget.expenses = this.data.groceryBudget.expenses.filter(exp => exp.id !== id);
+                this.saveData();
+                // Real-time sync to Supabase
+                this.saveBudgetToSupabase('grocery', this.data.groceryBudget);
+            }
+
+            // Statistics
+            calculateMonthlyStats() {
+                const income = this.getIncome();
+                const expenses = this.getExpenses();
+                const bills = this.getRecurringBills();
+                const gasBudget = this.getGasBudget();
+                const groceryBudget = this.getGroceryBudget();
+
+                const totalIncome = income.reduce((sum, item) => sum + item.amount, 0);
+                
+                // NEW: Separate paid and unpaid expenses
+                const paidExpenses = expenses.filter(exp => exp.isPaid).reduce((sum, item) => sum + item.amount, 0);
+                const unpaidExpenses = expenses.filter(exp => !exp.isPaid).reduce((sum, item) => sum + item.amount, 0);
+                const totalExpenses = expenses.reduce((sum, item) => sum + item.amount, 0);
+                
+                const totalBills = bills.reduce((sum, bill) => sum + this.calculateMonthlyEquivalent(bill.amount, bill.frequency), 0);
+                
+                const gasSpent = gasBudget.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+                const grocerySpent = groceryBudget.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+                
+                // UPDATED: Include gas and grocery budgets in total expenses calculation
+                const totalMonthlyExpenses = totalExpenses + totalBills + gasBudget.total + groceryBudget.total;
+                const netBalance = totalIncome - totalMonthlyExpenses;
+
+                return {
+                    totalIncome,
+                    totalExpenses: totalMonthlyExpenses,
+                    paidExpenses, // NEW: Track paid expenses
+                    unpaidExpenses, // NEW: Track unpaid expenses
+                    netBalance,
+                    gasRemaining: gasBudget.total - gasSpent,
+                    groceryRemaining: groceryBudget.total - grocerySpent,
+                    incomeChange: 0,
+                    expenseChange: 0,
+                    balanceChange: 0
+                };
+            }
+        }
+
+        // Enhanced Budget App
+        class BudgetApp {
+            constructor() {
+                this.dataManager = new DataManager();
+                this.currentSection = 'overview';
+                this.editingItem = null;
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.updateMonthDisplay();
+                this.showSection('overview');
+                this.updateOverview();
+            }
+
+            setupEventListeners() {
+                // Navigation
+                document.querySelectorAll('.nav-tab').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const section = e.target.closest('.nav-tab').dataset.section;
+                        this.showSection(section);
+                    });
+                });
+
+                // Month navigation
+                document.getElementById('prevMonth').addEventListener('click', () => this.changeMonth(-1));
+                document.getElementById('nextMonth').addEventListener('click', () => this.changeMonth(1));
+
+                // Income modal events
+                document.getElementById('addIncomeBtn').addEventListener('click', () => this.showIncomeModal());
+                document.getElementById('closeIncomeModal').addEventListener('click', () => this.hideIncomeModal());
+                document.getElementById('cancelIncome').addEventListener('click', () => this.hideIncomeModal());
+                document.getElementById('saveIncome').addEventListener('click', () => this.saveIncome());
+
+                // Expense modal events
+                document.getElementById('addExpenseBtn').addEventListener('click', () => this.showExpenseModal());
+                document.getElementById('closeExpenseModal').addEventListener('click', () => this.hideExpenseModal());
+                document.getElementById('cancelExpense').addEventListener('click', () => this.hideExpenseModal());
+                document.getElementById('saveExpense').addEventListener('click', () => this.saveExpense());
+
+                // Bill modal events
+                document.getElementById('addBillBtn').addEventListener('click', () => this.showBillModal());
+                document.getElementById('closeBillModal').addEventListener('click', () => this.hideBillModal());
+                document.getElementById('cancelBill').addEventListener('click', () => this.hideBillModal());
+                document.getElementById('saveBill').addEventListener('click', () => this.saveBill());
+
+                // Budget events - FIXED: Added proper event listener for editBudgetsBtn
+                document.getElementById('editBudgetsBtn').addEventListener('click', () => this.showBudgetModal());
+                document.getElementById('closeBudgetModal').addEventListener('click', () => this.hideBudgetModal());
+                document.getElementById('cancelBudgetEdit').addEventListener('click', () => this.hideBudgetModal());
+                document.getElementById('saveBudgetEdit').addEventListener('click', () => this.saveBudgetEdit());
+
+                // Gas & Grocery modal events
+                document.getElementById('addGasExpense').addEventListener('click', () => this.showGasExpenseModal());
+                document.getElementById('closeGasExpenseModal').addEventListener('click', () => this.hideGasExpenseModal());
+                document.getElementById('cancelGasExpense').addEventListener('click', () => this.hideGasExpenseModal());
+                document.getElementById('saveQuickGasExpense').addEventListener('click', () => this.saveQuickGasExpense());
+                
+                document.getElementById('addGroceryExpense').addEventListener('click', () => this.showGroceryExpenseModal());
+                document.getElementById('closeGroceryExpenseModal').addEventListener('click', () => this.hideGroceryExpenseModal());
+                document.getElementById('cancelGroceryExpense').addEventListener('click', () => this.hideGroceryExpenseModal());
+                document.getElementById('saveQuickGroceryExpense').addEventListener('click', () => this.saveQuickGroceryExpense());
+                
+                document.getElementById('viewGasHistory').addEventListener('click', () => this.showGasExpenseHistory());
+                document.getElementById('viewGroceryHistory').addEventListener('click', () => this.showGroceryExpenseHistory());
+
+                // Set default dates
+                this.setDefaultDates();
+            }
+
+            setDefaultDates() {
+                const today = new Date().toISOString().split('T')[0];
+                const elements = ['incomeDate', 'expenseDate', 'billDueDate', 'modalGasDate', 'quickGroceryDate'];
+                elements.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) element.value = today;
+                });
+            }
+
+            showSection(sectionName) {
+                // Update navigation
+                document.querySelectorAll('.nav-tab').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+
+                // Update sections
+                document.querySelectorAll('.section').forEach(section => {
+                    section.classList.remove('active');
+                });
+                document.getElementById(sectionName).classList.add('active');
+
+                this.currentSection = sectionName;
+
+                // Load section data
+                switch (sectionName) {
+                    case 'overview':
+                        this.updateOverview();
+                        break;
+                    case 'income':
+                        this.loadIncome();
+                        break;
+                    case 'expenses':
+                        this.loadExpenses();
+                        break;
+                    case 'budgets':
+                        this.loadBudgets();
+                        break;
+                    case 'bills':
+                        this.loadBills();
+                        break;
+                }
+            }
+
+            changeMonth(direction) {
+                this.dataManager.navigateMonth(direction);
+                this.updateMonthDisplay();
+                this.showSection(this.currentSection);
+            }
+
+            updateMonthDisplay() {
+                document.getElementById('currentMonth').textContent = this.dataManager.getMonthName(this.dataManager.currentMonth);
+                document.getElementById('currentYear').textContent = this.dataManager.currentYear;
+            }
+
+            // Overview Methods
+            updateOverview() {
+                const stats = this.dataManager.calculateMonthlyStats();
+                
+                // Update summary cards
+                document.getElementById('totalIncome').textContent = this.formatCurrency(stats.totalIncome);
+                document.getElementById('totalExpenses').textContent = this.formatCurrency(stats.totalExpenses);
+                document.getElementById('netBalance').textContent = this.formatCurrency(stats.netBalance);
+                document.getElementById('monthlySurplus').textContent = this.formatCurrency(stats.netBalance);
+
+                // Update change indicators
+                this.updateChangeIndicator('incomeChange', stats.incomeChange);
+                this.updateChangeIndicator('expenseChange', stats.expenseChange);
+                this.updateChangeIndicator('balanceChange', stats.balanceChange);
+                
+                // Update surplus indicator
+                const surplusElement = document.getElementById('surplusChange');
+                if (stats.netBalance >= 0) {
+                    surplusElement.textContent = 'Surplus';
+                    surplusElement.className = 'stat-change positive';
+                } else {
+                    surplusElement.textContent = 'Deficit';
+                    surplusElement.className = 'stat-change negative';
+                }
+                
+                // Update interactive overview cards
+                this.updateOverviewCards();
+            }
+
+            updateChangeIndicator(elementId, change) {
+                const element = document.getElementById(elementId);
+                element.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`;
+                element.className = 'stat-change';
+                
+                if (elementId === 'expenseChange') {
+                    element.classList.add(change <= 0 ? 'positive' : 'negative');
+                } else {
+                    element.classList.add(change >= 0 ? 'positive' : 'negative');
+                }
+            }
+
+            updateOverviewCards() {
+                const container = document.getElementById('overviewCards');
+                const gasBudget = this.dataManager.getGasBudget();
+                const groceryBudget = this.dataManager.getGroceryBudget();
+                
+                const cards = [];
+                
+                // Gas & Groceries Card - ALWAYS SHOW (even if budgets are 0)
+                const gasSpent = gasBudget.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+                const grocerySpent = groceryBudget.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+                const totalBudget = gasBudget.total + groceryBudget.total;
+                const totalSpent = gasSpent + grocerySpent;
+                
+                const gasGroceryItems = [];
+                if (gasBudget.total > 0) {
+                    gasGroceryItems.push({ 
+                        name: 'Gas Remaining', 
+                        amount: gasBudget.total - gasSpent, 
+                        positive: gasBudget.total - gasSpent >= 0 
+                    });
+                }
+                if (groceryBudget.total > 0) {
+                    gasGroceryItems.push({ 
+                        name: 'Grocery Remaining', 
+                        amount: groceryBudget.total - grocerySpent, 
+                        positive: groceryBudget.total - grocerySpent >= 0 
+                    });
+                }
+                
+                // If no budgets set, show setup message
+                if (gasGroceryItems.length === 0) {
+                    gasGroceryItems.push({ 
+                        name: 'Set up your budgets', 
+                        amount: 0, 
+                        positive: true 
+                    });
+                }
+                
+                cards.push({
+                    title: 'Gas & Groceries',
+                    icon: 'fas fa-gas-pump',
+                    iconColor: 'var(--warning-gradient)',
+                    count: gasBudget.expenses.length + groceryBudget.expenses.length,
+                    items: gasGroceryItems,
+                    total: totalBudget - totalSpent,
+                    action: () => this.showSection('budgets')
+                });
+
+                // NEW: Monthly Expenses Status Card - ALWAYS SHOW
+                const expenseStats = this.dataManager.getExpensesByPaidStatus();
+                let expenseItems = [];
+                
+                if (expenseStats.total.length > 0) {
+                    const paidAmount = expenseStats.paid.reduce((sum, exp) => sum + exp.amount, 0);
+                    const unpaidAmount = expenseStats.unpaid.reduce((sum, exp) => sum + exp.amount, 0);
+                    
+                    if (expenseStats.paid.length > 0) {
+                        expenseItems.push({
+                            name: `Paid (${expenseStats.paid.length})`,
+                            amount: paidAmount,
+                            positive: true
+                        });
+                    }
+                    
+                    if (expenseStats.unpaid.length > 0) {
+                        expenseItems.push({
+                            name: `Unpaid (${expenseStats.unpaid.length})`,
+                            amount: unpaidAmount,
+                            positive: false
+                        });
+                    }
+                } else {
+                    expenseItems = [{ 
+                        name: 'No expenses this month', 
+                        amount: 0, 
+                        positive: true 
+                    }];
+                }
+                
+                const totalExpenseAmount = expenseStats.total.reduce((sum, exp) => sum + exp.amount, 0);
+                
+                cards.push({
+                    title: 'Monthly Expenses',
+                    icon: 'fas fa-receipt',
+                    iconColor: 'var(--info-gradient)',
+                    count: expenseStats.total.length,
+                    items: expenseItems,
+                    total: totalExpenseAmount,
+                    action: () => this.showSection('expenses')
+                });
+                
+                container.innerHTML = cards.map((card, index) => `
+                    <div class="overview-card" style="transition-delay: ${index * 0.1}s">
+                        <div class="overview-card-header">
+                            <div class="overview-card-title">
+                                <div class="overview-card-icon" style="background: ${card.iconColor}">
+                                    <i class="${card.icon}"></i>
+                                </div>
+                                ${card.title}
+                            </div>
+                            <div class="overview-card-count">${card.count} items</div>
+                        </div>
+                        <div class="overview-card-content">
+                            ${card.items.map(item => `
+                                <div class="overview-card-item">
+                                    <div class="overview-card-item-name">${item.name}</div>
+                                    <div class="overview-card-item-amount ${item.positive ? 'positive' : 'negative'}">
+                                        ${item.amount === 0 && item.name.includes('Set up') ? '' : this.formatCurrency(item.amount)}
+                                    </div>
+                                </div>
+                            `).join('')}
+                            <div class="overview-card-total">
+                                <div class="overview-card-total-label">Total</div>
+                                <div class="overview-card-total-amount ${card.total >= 0 ? 'positive' : 'negative'}">
+                                    ${this.formatCurrency(Math.abs(card.total))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                // Add click handlers
+                cards.forEach((card, index) => {
+                    const cardElement = container.children[index];
+                    if (card.action) {
+                        cardElement.addEventListener('click', card.action);
+                    }
+                });
+            }
+
+            // FIXED: Added getUpcomingPayments method for upcoming/late payments card
+            getUpcomingPayments(days = 7) {
+                const bills = this.dataManager.getRecurringBills();
+                const today = new Date();
+                const upcomingPayments = [];
+
+                bills.forEach(bill => {
+                    const dueDate = new Date(bill.dueDate);
+                    const timeDiff = dueDate.getTime() - today.getTime();
+                    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+                    if (daysDiff <= days && daysDiff >= -30) {
+                        upcomingPayments.push({
+                            ...bill,
+                            daysUntilDue: daysDiff,
+                            isOverdue: daysDiff < 0,
+                            amount: this.dataManager.calculateMonthlyEquivalent(bill.amount, bill.frequency)
+                        });
+                    }
+                });
+
+                return upcomingPayments.sort((a, b) => {
+                    if (a.isOverdue && !b.isOverdue) return -1;
+                    if (!a.isOverdue && b.isOverdue) return 1;
+                    return a.daysUntilDue - b.daysUntilDue;
+                });
+            }
+
+            // NEW: Added getUpcomingExpenses method for upcoming expense payments
+            getUpcomingExpenses(days = 7) {
+                const expenses = this.dataManager.getExpenses();
+                const today = new Date();
+                const currentDay = today.getDate();
+                const upcomingExpenses = [];
+
+                expenses.forEach(expense => {
+                    if (expense.dueDate) {
+                        let daysUntilDue;
+                        
+                        if (expense.dueDate >= currentDay) {
+                            // Due date is later this month
+                            daysUntilDue = expense.dueDate - currentDay;
+                        } else {
+                            // Due date is next month
+                            const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, expense.dueDate);
+                            const timeDiff = nextMonth.getTime() - today.getTime();
+                            daysUntilDue = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                        }
+
+                        if (daysUntilDue <= days && daysUntilDue >= -7) {
+                            upcomingExpenses.push({
+                                ...expense,
+                                daysUntilDue: daysUntilDue,
+                                isOverdue: daysUntilDue < 0
+                            });
+                        }
+                    }
+                });
+
+                return upcomingExpenses.sort((a, b) => {
+                    if (a.isOverdue && !b.isOverdue) return -1;
+                    if (!a.isOverdue && b.isOverdue) return 1;
+                    return a.daysUntilDue - b.daysUntilDue;
+                });
+            }
+
+            showMessage(message, type = 'info') {
+                // Remove existing messages
+                const existingMessages = document.querySelectorAll('.message');
+                existingMessages.forEach(msg => msg.remove());
+
+                // Create new message
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${type}`;
+                messageDiv.innerHTML = `
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                    ${message}
+                `;
+
+                // Insert at top of current section
+                const currentSection = document.querySelector('.section.active');
+                currentSection.insertBefore(messageDiv, currentSection.firstChild);
+
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    messageDiv.remove();
+                }, 5000);
+            }
+
+            // Income Methods
+            showIncomeModal(income = null) {
+                this.editingItem = income;
+                const modal = document.getElementById('incomeModal');
+                const title = document.getElementById('incomeModalTitle');
+                
+                if (income) {
+                    title.textContent = 'Edit Income';
+                    document.getElementById('incomeAmount').value = income.amount;
+                    document.getElementById('incomeDate').value = income.date;
+                    document.getElementById('incomeCategory').value = income.category || 'salary';
+                } else {
+                    title.textContent = 'Add Income';
+                    document.getElementById('incomeAmount').value = '';
+                    document.getElementById('incomeDate').value = new Date().toISOString().split('T')[0];
+                    document.getElementById('incomeCategory').value = 'salary';
+                }
+                
+                modal.style.display = 'flex';
+            }
+
+            hideIncomeModal() {
+                document.getElementById('incomeModal').style.display = 'none';
+                this.editingItem = null;
+            }
+
+            saveIncome() {
+                const amount = parseFloat(document.getElementById('incomeAmount').value);
+                const date = document.getElementById('incomeDate').value;
+                const category = document.getElementById('incomeCategory').value;
+
+                if (!amount || !date) {
+                    this.showMessage('Please fill in all required fields.', 'error');
+                    return;
+                }
+
+                const incomeData = { source: category, amount, date, category };
+
+                if (this.editingItem) {
+                    this.dataManager.updateIncome(this.editingItem.id, incomeData);
+                    this.showMessage('Income updated successfully!', 'success');
+                } else {
+                    this.dataManager.addIncome(incomeData);
+                    this.showMessage('Income added successfully!', 'success');
+                }
+
+                this.hideIncomeModal();
+                this.loadIncome();
+                this.updateOverview();
+            }
+
+            loadIncome() {
+                const income = this.dataManager.getIncome();
+                const container = document.getElementById('incomeList');
+                
+                if (income.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-money-check-alt"></i>
+                            <h3>No income recorded</h3>
+                            <p>Add your first income source to get started</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = income.map(item => `
+                    <div class="list-item">
+                        <div class="item-info">
+                            <div class="item-title">${item.source}</div>
+                            <div class="item-details">${this.formatDate(item.date)} • ${this.formatCategoryName(item.category)}</div>
+                        </div>
+                        <div class="item-amount positive">${this.formatCurrency(item.amount)}</div>
+                        <div class="item-actions">
+                            <button class="btn btn-small btn-outline" onclick="app.editIncome('${item.id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-small btn-outline" onclick="app.deleteIncome('${item.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            editIncome(id) {
+                const income = this.dataManager.getIncome().find(i => i.id === id);
+                if (income) {
+                    this.showIncomeModal(income);
+                }
+            }
+
+            deleteIncome(id) {
+                if (confirm('Are you sure you want to delete this income?')) {
+                    this.dataManager.deleteIncome(id);
+                    this.loadIncome();
+                    this.updateOverview();
+                    this.showMessage('Income deleted successfully!', 'success');
+                }
+            }
+
+            // Expense Methods
+            showExpenseModal(expense = null) {
+                this.editingItem = expense;
+                const modal = document.getElementById('expenseModal');
+                const title = document.getElementById('expenseModalTitle');
+                
+                if (expense) {
+                    title.textContent = 'Edit Expense';
+                    document.getElementById('expenseName').value = expense.name;
+                    document.getElementById('expenseAmount').value = expense.amount;
+                    document.getElementById('expenseCategory').value = expense.category || 'other';
+                    document.getElementById('expenseDate').value = expense.date;
+                    document.getElementById('expenseDueDate').value = expense.dueDate || '';
+                } else {
+                    title.textContent = 'Add Monthly Expense';
+                    document.getElementById('expenseName').value = '';
+                    document.getElementById('expenseAmount').value = '';
+                    document.getElementById('expenseCategory').value = 'other';
+                    document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+                    document.getElementById('expenseDueDate').value = '';
+                }
+                
+                modal.style.display = 'flex';
+            }
+
+            hideExpenseModal() {
+                document.getElementById('expenseModal').style.display = 'none';
+                this.editingItem = null;
+            }
+
+            saveExpense() {
+                const name = document.getElementById('expenseName').value.trim();
+                const amount = parseFloat(document.getElementById('expenseAmount').value);
+                const category = document.getElementById('expenseCategory').value;
+                const date = document.getElementById('expenseDate').value;
+                const dueDate = parseInt(document.getElementById('expenseDueDate').value) || null;
+
+                if (!name || !amount || !date) {
+                    this.showMessage('Please fill in all required fields.', 'error');
+                    return;
+                }
+
+                const expenseData = { name, amount, category, date, dueDate };
+
+                if (this.editingItem) {
+                    this.dataManager.updateExpense(this.editingItem.id, expenseData);
+                    this.showMessage('Expense updated successfully!', 'success');
+                } else {
+                    this.dataManager.addExpense(expenseData);
+                    this.showMessage('Expense added successfully! It will auto-populate to future months.', 'success');
+                }
+
+                this.hideExpenseModal();
+                this.loadExpenses();
+                this.updateOverview();
+            }
+
+            loadExpenses() {
+                let expenses = this.dataManager.getExpenses();
+                const container = document.getElementById('expenseList');
+                
+                if (expenses.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-credit-card"></i>
+                            <h3>No expenses recorded</h3>
+                            <p>Add your first expense to start tracking</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // NEW: Sort expenses by due date (1st to last of month)
+                expenses = expenses.sort((a, b) => {
+                    // Expenses without due dates go to the end
+                    if (!a.dueDate && !b.dueDate) return 0;
+                    if (!a.dueDate) return 1;
+                    if (!b.dueDate) return -1;
+                    
+                    // Sort by due date (day of month)
+                    return a.dueDate - b.dueDate;
+                });
+
+                container.innerHTML = expenses.map(item => `
+                    <div class="list-item ${item.isPaid ? 'paid-expense' : 'unpaid-expense'}">
+                        <div class="item-info">
+                            <div class="item-title">
+                                ${item.isPaid ? '<i class="fas fa-check-circle" style="color: var(--success-gradient); margin-right: 0.5rem;"></i>' : '<i class="fas fa-clock" style="color: var(--warning-gradient); margin-right: 0.5rem;"></i>'}
+                                ${item.name}
+                                ${item.isTemplate ? '<span style="background: var(--primary-gradient); color: white; padding: 0.25rem 0.5rem; border-radius: 0.5rem; font-size: 0.75rem; margin-left: 0.5rem;">RECURRING</span>' : '<span style="background: var(--info-gradient); color: white; padding: 0.25rem 0.5rem; border-radius: 0.5rem; font-size: 0.75rem; margin-left: 0.5rem;">THIS MONTH</span>'}
+                                ${item.isPaid ? '<span style="background: var(--success-gradient); color: white; padding: 0.25rem 0.5rem; border-radius: 0.5rem; font-size: 0.75rem; margin-left: 0.5rem;">PAID</span>' : '<span style="background: var(--warning-gradient); color: white; padding: 0.25rem 0.5rem; border-radius: 0.5rem; font-size: 0.75rem; margin-left: 0.5rem;">UNPAID</span>'}
+                            </div>
+                            <div class="item-details">${this.formatDate(item.date)} • ${this.formatCategoryName(item.category)}${item.dueDate ? ` • Due: ${this.getOrdinalNumber(item.dueDate)} of month` : ''}</div>
+                        </div>
+                        <div class="item-amount ${item.isPaid ? 'positive' : 'negative'}">${this.formatCurrency(item.amount)}</div>
+                        <div class="item-actions">
+                            <button class="btn btn-small ${item.isPaid ? 'btn-outline' : 'btn-primary'}" onclick="app.toggleExpensePaid('${item.id}')" title="${item.isPaid ? 'Mark as unpaid' : 'Mark as paid'}">
+                                <i class="fas fa-${item.isPaid ? 'undo' : 'check'}"></i>
+                            </button>
+                            <button class="btn btn-small btn-outline" onclick="app.editExpense('${item.id}')" title="${item.isTemplate ? 'Edit recurring expense' : 'Edit this month only'}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-small btn-outline" onclick="app.deleteExpense('${item.id}')" title="${item.isTemplate ? 'Delete recurring expense' : 'Delete this month only'}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            editExpense(id) {
+                const expense = this.dataManager.getExpenses().find(e => e.id === id);
+                if (expense) {
+                    this.showExpenseModal(expense);
+                }
+            }
+
+            deleteExpense(id) {
+                const result = this.dataManager.deleteExpense(id);
+                
+                if (result === 'template') {
+                    // This is a template expense, ask user what to do
+                    const choice = confirm(
+                        'This expense is set to repeat monthly. Choose:\n\n' +
+                        'OK = Delete from this month and all future months\n' +
+                        'Cancel = Delete only from this month'
+                    );
+                    
+                    if (choice) {
+                        // Delete template and all future instances
+                        const expense = this.dataManager.data.expenses.find(item => item.id === id);
+                        this.dataManager.deleteExpenseTemplate(expense.templateId);
+                        this.showMessage('Expense deleted from this month and all future months!', 'success');
+                    } else {
+                        // Delete only this month's instance
+                        this.dataManager.deleteExpenseInstance(id);
+                        this.showMessage('Expense deleted from this month only!', 'success');
+                    }
+                } else if (result === 'instance') {
+                    // This was just a monthly instance
+                    this.showMessage('Expense deleted from this month!', 'success');
+                }
+                
+                this.loadExpenses();
+                this.updateOverview();
+            }
+
+            // NEW: Toggle expense paid status
+            toggleExpensePaid(id) {
+                const expense = this.dataManager.data.expenses.find(item => item.id === id);
+                if (expense) {
+                    const newPaidStatus = !expense.isPaid;
+                    this.dataManager.markExpensePaid(id, newPaidStatus);
+                    this.loadExpenses();
+                    this.updateOverview();
+                    this.showMessage(
+                        `Expense marked as ${newPaidStatus ? 'paid' : 'unpaid'}!`, 
+                        'success'
+                    );
+                }
+            }
+
+            // Budget Methods - FIXED: All budget methods now work properly
+            showBudgetModal() {
+                const gasBudget = this.dataManager.getGasBudget();
+                const groceryBudget = this.dataManager.getGroceryBudget();
+                
+                document.getElementById('modalGasBudget').value = gasBudget.total;
+                document.getElementById('modalGroceryBudget').value = groceryBudget.total;
+                document.getElementById('budgetModal').style.display = 'flex';
+            }
+
+            hideBudgetModal() {
+                document.getElementById('budgetModal').style.display = 'none';
+            }
+
+            saveBudgetEdit() {
+                const gasBudget = parseFloat(document.getElementById('modalGasBudget').value) || 0;
+                const groceryBudget = parseFloat(document.getElementById('modalGroceryBudget').value) || 0;
+                
+                this.dataManager.updateGasBudget(gasBudget);
+                this.dataManager.updateGroceryBudget(groceryBudget);
+                
+                this.hideBudgetModal();
+                this.loadBudgets();
+                this.updateOverview();
+                this.showMessage('Budgets updated successfully!', 'success');
+            }
+
+            loadBudgets() {
+                const gasBudget = this.dataManager.getGasBudget();
+                const groceryBudget = this.dataManager.getGroceryBudget();
+                const stats = this.dataManager.calculateMonthlyStats();
+                
+                // Update gas budget display
+                document.getElementById('gasBudget').textContent = this.formatCurrency(gasBudget.total);
+                document.getElementById('gasRemaining').textContent = `${this.formatCurrency(stats.gasRemaining)} remaining`;
+                
+                // Update gas progress bar
+                const gasPercentage = gasBudget.total > 0 ? ((gasBudget.total - stats.gasRemaining) / gasBudget.total) * 100 : 0;
+                const gasProgressBar = document.getElementById('gasProgress');
+                gasProgressBar.style.width = `${gasPercentage}%`;
+                
+                // Change color based on usage
+                if (gasPercentage > 90) {
+                    gasProgressBar.style.background = 'var(--danger-gradient)';
+                } else if (gasPercentage > 75) {
+                    gasProgressBar.style.background = 'var(--warning-gradient)';
+                } else {
+                    gasProgressBar.style.background = 'var(--success-gradient)';
+                }
+                
+                document.getElementById('gasPercent').textContent = `${gasPercentage.toFixed(0)}%`;
+                
+                // Update grocery budget display
+                document.getElementById('groceryBudget').textContent = this.formatCurrency(groceryBudget.total);
+                document.getElementById('groceryRemaining').textContent = `${this.formatCurrency(stats.groceryRemaining)} remaining`;
+                
+                // Update grocery progress bar
+                const groceryPercentage = groceryBudget.total > 0 ? ((groceryBudget.total - stats.groceryRemaining) / groceryBudget.total) * 100 : 0;
+                const groceryProgressBar = document.getElementById('groceryProgress');
+                groceryProgressBar.style.width = `${groceryPercentage}%`;
+                
+                // Change color based on usage
+                if (groceryPercentage > 90) {
+                    groceryProgressBar.style.background = 'var(--danger-gradient)';
+                } else if (groceryPercentage > 75) {
+                    groceryProgressBar.style.background = 'var(--warning-gradient)';
+                } else {
+                    groceryProgressBar.style.background = 'var(--success-gradient)';
+                }
+                
+                document.getElementById('groceryPercent').textContent = `${groceryPercentage.toFixed(0)}%`;
+                
+                // Load expense histories
+                this.loadGasExpenseHistory();
+                this.loadGroceryExpenseHistory();
+            }
+
+            // Gas Expense Methods
+            showGasExpenseModal() {
+                document.getElementById('modalGasAmount').value = '';
+                document.getElementById('modalGasDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('modalGasNote').value = '';
+                document.getElementById('gasExpenseModal').style.display = 'flex';
+            }
+
+            hideGasExpenseModal() {
+                document.getElementById('gasExpenseModal').style.display = 'none';
+            }
+
+            saveQuickGasExpense() {
+                const amount = parseFloat(document.getElementById('modalGasAmount').value);
+                const date = document.getElementById('modalGasDate').value;
+                const note = document.getElementById('modalGasNote').value.trim();
+
+                if (!amount || !date) {
+                    this.showMessage('Please enter an amount and date.', 'error');
+                    return;
+                }
+
+                const expenseData = {
+                    amount,
+                    note: note || 'Gas expense',
+                    date: date
+                };
+
+                this.dataManager.addGasExpense(expenseData);
+                this.hideGasExpenseModal();
+                this.loadBudgets();
+                this.updateOverview();
+                this.showMessage('Gas expense added successfully!', 'success');
+            }
+
+            // Grocery Expense Methods
+            showGroceryExpenseModal() {
+                document.getElementById('quickGroceryAmount').value = '';
+                document.getElementById('quickGroceryDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('quickGroceryNote').value = '';
+                document.getElementById('groceryExpenseModal').style.display = 'flex';
+            }
+
+            hideGroceryExpenseModal() {
+                document.getElementById('groceryExpenseModal').style.display = 'none';
+            }
+
+            saveQuickGroceryExpense() {
+                const amount = parseFloat(document.getElementById('quickGroceryAmount').value);
+                const date = document.getElementById('quickGroceryDate').value;
+                const note = document.getElementById('quickGroceryNote').value.trim();
+
+                if (!amount || !date) {
+                    this.showMessage('Please enter an amount and date.', 'error');
+                    return;
+                }
+
+                const expenseData = {
+                    amount,
+                    note: note || 'Grocery expense',
+                    date: date
+                };
+
+                this.dataManager.addGroceryExpense(expenseData);
+                this.hideGroceryExpenseModal();
+                this.loadBudgets();
+                this.updateOverview();
+                this.showMessage('Grocery expense added successfully!', 'success');
+            }
+
+            // Expense History Methods
+            loadGasExpenseHistory() {
+                const gasBudget = this.dataManager.getGasBudget();
+                const container = document.getElementById('gasExpenseHistory').querySelector('.list-container');
+                
+                if (gasBudget.expenses.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-gas-pump"></i>
+                            <h3>No gas expenses yet</h3>
+                            <p>Add your first gas expense</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Sort expenses by date (newest first)
+                const sortedExpenses = gasBudget.expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                container.innerHTML = sortedExpenses.map(expense => `
+                    <div class="list-item">
+                        <div class="item-info">
+                            <div class="item-title">
+                                <i class="fas fa-gas-pump" style="color: var(--warning-gradient); margin-right: 0.5rem;"></i>
+                                ${expense.note}
+                            </div>
+                            <div class="item-details">${this.formatDate(expense.date)} • Gas Expense</div>
+                        </div>
+                        <div class="item-amount negative">${this.formatCurrency(expense.amount)}</div>
+                        <div class="item-actions">
+                            <button class="btn btn-small btn-outline" onclick="app.deleteGasExpense('${expense.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            loadGroceryExpenseHistory() {
+                const groceryBudget = this.dataManager.getGroceryBudget();
+                const container = document.getElementById('groceryExpenseHistory').querySelector('.list-container');
+                
+                if (groceryBudget.expenses.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-shopping-cart"></i>
+                            <h3>No grocery expenses yet</h3>
+                            <p>Add your first grocery expense</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Sort expenses by date (newest first)
+                const sortedExpenses = groceryBudget.expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                container.innerHTML = sortedExpenses.map(expense => `
+                    <div class="list-item">
+                        <div class="item-info">
+                            <div class="item-title">
+                                <i class="fas fa-shopping-cart" style="color: var(--success-gradient); margin-right: 0.5rem;"></i>
+                                ${expense.note}
+                            </div>
+                            <div class="item-details">${this.formatDate(expense.date)} • Grocery Expense</div>
+                        </div>
+                        <div class="item-amount negative">${this.formatCurrency(expense.amount)}</div>
+                        <div class="item-actions">
+                            <button class="btn btn-small btn-outline" onclick="app.deleteGroceryExpense('${expense.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            showGasExpenseHistory() {
+                const historyElement = document.getElementById('gasExpenseHistory');
+                const groceryHistoryElement = document.getElementById('groceryExpenseHistory');
+                
+                if (historyElement.classList.contains('show')) {
+                    historyElement.classList.remove('show');
+                } else {
+                    historyElement.classList.add('show');
+                    groceryHistoryElement.classList.remove('show');
+                }
+            }
+
+            showGroceryExpenseHistory() {
+                const historyElement = document.getElementById('groceryExpenseHistory');
+                const gasHistoryElement = document.getElementById('gasExpenseHistory');
+                
+                if (historyElement.classList.contains('show')) {
+                    historyElement.classList.remove('show');
+                } else {
+                    historyElement.classList.add('show');
+                    gasHistoryElement.classList.remove('show');
+                }
+            }
+
+            deleteGasExpense(id) {
+                if (confirm('Are you sure you want to delete this gas expense?')) {
+                    this.dataManager.deleteGasExpense(id);
+                    this.loadBudgets();
+                    this.updateOverview();
+                    this.showMessage('Gas expense deleted successfully!', 'success');
+                }
+            }
+
+            deleteGroceryExpense(id) {
+                if (confirm('Are you sure you want to delete this grocery expense?')) {
+                    this.dataManager.deleteGroceryExpense(id);
+                    this.loadBudgets();
+                    this.updateOverview();
+                    this.showMessage('Grocery expense deleted successfully!', 'success');
+                }
+            }
+
+            // Bill Methods
+            showBillModal(bill = null) {
+                this.editingItem = bill;
+                const modal = document.getElementById('billModal');
+                const title = document.getElementById('billModalTitle');
+                
+                if (bill) {
+                    title.textContent = 'Edit Subscription';
+                    document.getElementById('billName').value = bill.name;
+                    document.getElementById('billAmount').value = bill.amount;
+                    document.getElementById('billFrequency').value = bill.frequency;
+                    document.getElementById('billDueDate').value = bill.dueDate;
+                } else {
+                    title.textContent = 'Add Recurring Subscription';
+                    document.getElementById('billName').value = '';
+                    document.getElementById('billAmount').value = '';
+                    document.getElementById('billFrequency').value = 'monthly';
+                    document.getElementById('billDueDate').value = new Date().toISOString().split('T')[0];
+                }
+                
+                modal.style.display = 'flex';
+            }
+
+            hideBillModal() {
+                document.getElementById('billModal').style.display = 'none';
+                this.editingItem = null;
+            }
+
+            saveBill() {
+                const name = document.getElementById('billName').value.trim();
+                const amount = parseFloat(document.getElementById('billAmount').value);
+                const frequency = document.getElementById('billFrequency').value;
+                const dueDate = document.getElementById('billDueDate').value;
+
+                if (!name || !amount || !dueDate) {
+                    this.showMessage('Please fill in all required fields.', 'error');
+                    return;
+                }
+
+                const billData = { name, amount, frequency, dueDate };
+
+                if (this.editingItem) {
+                    this.dataManager.updateRecurringBill(this.editingItem.id, billData);
+                    this.showMessage('Subscription updated successfully!', 'success');
+                } else {
+                    this.dataManager.addRecurringBill(billData);
+                    this.showMessage('Subscription added successfully!', 'success');
+                }
+
+                this.hideBillModal();
+                this.loadBills();
+                this.updateOverview();
+            }
+
+            loadBills() {
+                const bills = this.dataManager.getRecurringBills();
+                const container = document.getElementById('billsList');
+                
+                // Update monthly total
+                const monthlyTotal = bills.reduce((sum, bill) => {
+                    return sum + this.dataManager.calculateMonthlyEquivalent(bill.amount, bill.frequency);
+                }, 0);
+                document.getElementById('monthlyBillsTotal').textContent = this.formatCurrency(monthlyTotal);
+                
+                if (bills.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-calendar-check"></i>
+                            <h3>No recurring bills</h3>
+                            <p>Add your first recurring bill to get started</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = bills.map(bill => {
+                    const isOverdue = new Date(bill.dueDate) < new Date();
+                    const paymentCount = bill.paymentHistory ? bill.paymentHistory.length : 0;
+                    
+                    return `
+                        <div class="list-item ${bill.isPaid ? 'paid-expense' : 'unpaid-expense'}">
+                            <div class="item-info">
+                                <div class="item-title">
+                                    ${bill.isPaid ? '<i class="fas fa-check-circle" style="color: var(--success-gradient); margin-right: 0.5rem;"></i>' : (isOverdue ? '<i class="fas fa-exclamation-triangle" style="color: var(--danger-gradient); margin-right: 0.5rem;"></i>' : '<i class="fas fa-clock" style="color: var(--warning-gradient); margin-right: 0.5rem;"></i>')}
+                                    ${bill.name}
+                                    ${bill.isPaid ? '<span style="background: var(--success-gradient); color: white; padding: 0.25rem 0.5rem; border-radius: 0.5rem; font-size: 0.75rem; margin-left: 0.5rem;">PAID</span>' : (isOverdue ? '<span style="background: var(--danger-gradient); color: white; padding: 0.25rem 0.5rem; border-radius: 0.5rem; font-size: 0.75rem; margin-left: 0.5rem;">OVERDUE</span>' : '<span style="background: var(--warning-gradient); color: white; padding: 0.25rem 0.5rem; border-radius: 0.5rem; font-size: 0.75rem; margin-left: 0.5rem;">DUE</span>')}
+                                </div>
+                                <div class="item-details">
+                                    Due: ${this.formatDate(bill.dueDate)} • ${this.formatCategoryName(bill.frequency)}
+                                    ${paymentCount > 0 ? ` • ${paymentCount} payments logged` : ''}
+                                </div>
+                            </div>
+                            <div class="item-amount ${bill.isPaid ? 'positive' : 'negative'}">${this.formatCurrency(bill.amount)}</div>
+                            <div class="item-actions">
+                                <button class="btn btn-small ${bill.isPaid ? 'btn-outline' : 'btn-primary'}" onclick="app.toggleSubscriptionPaid('${bill.id}')" title="${bill.isPaid ? 'Undo payment' : 'Mark as paid'}">
+                                    <i class="fas fa-${bill.isPaid ? 'undo' : 'check'}"></i>
+                                </button>
+                                <button class="btn btn-small btn-outline" onclick="app.editBill('${bill.id}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-small btn-outline" onclick="app.deleteBill('${bill.id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            editBill(id) {
+                const bill = this.dataManager.getRecurringBills().find(b => b.id === id);
+                if (bill) {
+                    this.showBillModal(bill);
+                }
+            }
+
+            deleteBill(id) {
+                if (confirm('Are you sure you want to delete this subscription?')) {
+                    this.dataManager.deleteRecurringBill(id);
+                    this.loadBills();
+                    this.updateOverview();
+                    this.showMessage('Subscription deleted successfully!', 'success');
+                }
+            }
+
+            // NEW: Toggle subscription paid status
+            toggleSubscriptionPaid(id) {
+                const bill = this.dataManager.getRecurringBills().find(b => b.id === id);
+                if (bill) {
+                    if (bill.isPaid) {
+                        // Undo payment - restore previous due date
+                        this.dataManager.markSubscriptionUnpaid(id);
+                        this.showMessage('Payment undone! Due date restored to previous cycle.', 'success');
+                    } else {
+                        // Mark as paid - advance to next cycle
+                        const nextDueDate = this.dataManager.markSubscriptionPaid(id);
+                        if (nextDueDate) {
+                            this.showMessage(`Payment logged! Next due date: ${this.formatDate(nextDueDate.toISOString().split('T')[0])}`, 'success');
+                        }
+                    }
+                    this.loadBills();
+                    this.updateOverview();
+                }
+            }
+
+            // Utility Methods
+            formatCurrency(amount) {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD'
+                }).format(amount);
+            }
+
+            formatDate(dateString) {
+                // Fix timezone issue by parsing date as local date
+                const dateParts = dateString.split('-');
+                const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+                return date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+            }
+
+            formatCategoryName(category) {
+                return category.charAt(0).toUpperCase() + category.slice(1).replace(/([A-Z])/g, ' $1');
+            }
+
+            getOrdinalNumber(num) {
+                const suffixes = ['th', 'st', 'nd', 'rd'];
+                const value = num % 100;
+                return num + (suffixes[(value - 20) % 10] || suffixes[value] || suffixes[0]);
+            }
+        }
+
+        // Initialize app when DOM is loaded
+        let app;
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new BudgetApp();
+        });
+    </script>
+</body>
+</html>
